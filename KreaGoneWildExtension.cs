@@ -67,8 +67,8 @@ public class KreaGoneWildExtension : Extension
             Name: "Multiplier",
             Description: "Overall multiplier applied to Krea 2 conditioning.",
             Default: "4.00",
-            Min: -1000000000, Max: 1000000000, Step: 0.01,
-            ViewMin: -10, ViewMax: 10,
+            Min: -1, Max: 50, Step: 0.5,
+            ViewMin: -1, ViewMax: 50,
             ViewType: ParamViewType.SLIDER,
             Group: KreaGoneWildGroup,
             FeatureFlag: FeatureFlag,
@@ -86,7 +86,11 @@ public class KreaGoneWildExtension : Extension
             ID: "kreagonewildperlayerweights"
         ));
 
+        // Base stage: rebalance the conditioning before the main sampler (-5) consumes it.
         WorkflowGenerator.AddStep(ApplyConditioningRebalance, -6.99);
+        // Refiner stage: the refiner builds fresh conditioning of its own (it does not reuse
+        // FinalPrompt), so rebalance its sampler's conditioning after the refiner step (-4) runs.
+        WorkflowGenerator.AddStep(ApplyRefinerConditioningRebalance, -3.9);
     }
 
     /// <summary>Adds a rebalance node after each of the positive and negative prompt encoders.</summary>
@@ -103,6 +107,39 @@ public class KreaGoneWildExtension : Extension
         string negativeNode = CreateRebalanceNode(generator, generator.FinalNegativePrompt, multiplier, perLayerWeights);
         generator.FinalPrompt = [positiveNode, 0];
         generator.FinalNegativePrompt = [negativeNode, 0];
+    }
+
+    /// <summary>ComfyUI node ID SwarmUI assigns to the refiner stage KSampler.</summary>
+    private const string RefinerSamplerNodeId = "23";
+
+    /// <summary>Rebalances the conditioning fed into the refiner stage sampler, if a Krea 2 refiner ran.</summary>
+    private static void ApplyRefinerConditioningRebalance(WorkflowGenerator generator)
+    {
+        if (!generator.UserInput.Get(Enable, false) || generator.CurrentCompatClass() != T2IModelClassSorter.CompatKrea2.ID)
+        {
+            return;
+        }
+        // CurrentCompatClass now reflects the refiner model (the refiner step sets FinalLoadedModel),
+        // so reaching here means the refiner stage itself uses Krea 2 conditioning.
+        if (generator.Workflow?[RefinerSamplerNodeId] is not JObject samplerNode || samplerNode["inputs"] is not JObject inputs)
+        {
+            // No refiner sampler in this workflow (no refiner used, or it returned early) - nothing to do.
+            return;
+        }
+        if (inputs["positive"] is not JArray positive || inputs["negative"] is not JArray negative)
+        {
+            // Refiner sampler uses a non-standard conditioning layout (e.g. an init-image guider chain),
+            // so the plain conditioning inputs aren't present to wrap.
+            Logs.Debug("Krea Gone Wild: refiner sampler conditioning not in the expected layout; skipping refiner rebalance.");
+            return;
+        }
+        double multiplier = generator.UserInput.Get(Multiplier);
+        string perLayerWeights = generator.UserInput.Get(PerLayerWeights);
+        // DeepClone so the existing conditioning links can be reused as inputs to the new rebalance nodes.
+        string positiveNode = CreateRebalanceNode(generator, (JArray)positive.DeepClone(), multiplier, perLayerWeights);
+        string negativeNode = CreateRebalanceNode(generator, (JArray)negative.DeepClone(), multiplier, perLayerWeights);
+        inputs["positive"] = new JArray { positiveNode, 0 };
+        inputs["negative"] = new JArray { negativeNode, 0 };
     }
 
     /// <summary>Creates one conditioning rebalance node for a conditioning path.</summary>
