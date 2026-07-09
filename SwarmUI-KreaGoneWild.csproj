@@ -16,8 +16,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="ComfyTyped">
+      <HintPath>lib/ComfyTyped.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="bin/**/*.cs" />
     <Compile Remove="obj/**/*.cs" />
+    <Compile Remove="Tests/**/*.cs" />
     <Compile Remove="**/._*" />
   </ItemGroup>
 
