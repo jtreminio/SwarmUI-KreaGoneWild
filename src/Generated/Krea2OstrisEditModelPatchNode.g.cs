@@ -5,7 +5,7 @@ using ComfyTyped.Types;
 
 namespace KreaGoneWild.Generated;
 
-/// <summary>Enable reference latents on a Krea 2 model (index_timestep_zero method, as trained by ai-toolkit). Chain conditioning from TextEncodeKrea2OstrisEdit or Set Reference Latent nodes.</summary>
+/// <summary>Enable reference latents on a Krea 2 model (index_timestep_zero method, as trained by ai-toolkit). Chain conditioning from TextEncodeKrea2OstrisEdit or Set Reference Latent nodes. kv_cache enables the cached one-pass reference mode; the LoRA must be trained with ai-toolkit's kv_cache option for it to work properly.</summary>
 /// <remarks>Category: ostris/krea2</remarks>
 public sealed class Krea2OstrisEditModelPatchNode : ComfyNode
 {
@@ -18,11 +18,14 @@ public sealed class Krea2OstrisEditModelPatchNode : ComfyNode
 
     // ── Inputs ──
     public NodeInput<ModelType> Model { get; }
+    public NodeInput<BooleanType> KvCache { get; }
 
     public Krea2OstrisEditModelPatchNode()
     {
         MODEL = AddOutput<ModelType>(0, "MODEL");
         Model = AddInput<ModelType>("model");
+        KvCache = AddInput<BooleanType>("kv_cache");
+        KvCache.Set(false);
     }
 
     /// <summary>Fluent setter for inputs. Returns <c>this</c> for chaining.
@@ -30,10 +33,12 @@ public sealed class Krea2OstrisEditModelPatchNode : ComfyNode
     /// Primitive inputs accept a literal or a same-typed output; connection inputs accept a same-typed
     /// output (mismatches are a compile error). Input lists are not exposed here — use <c>Add</c>/<c>AddRange</c>.</summary>
     public Krea2OstrisEditModelPatchNode With(
-        In<ModelType>? Model = null
+        In<ModelType>? Model = null,
+        BoolArg? KvCache = null
     )
     {
         Model?.ApplyTo(this.Model);
+        KvCache?.ApplyTo(this.KvCache);
         return this;
     }
 }

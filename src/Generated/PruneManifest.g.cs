@@ -13,6 +13,7 @@ public static class PruneManifest
     public static readonly string[] AlwaysKeep = new string[]
     {
         "ConditioningKrea2RebalanceNode",
+        "Krea2EditModelPatchNode",
         "Krea2OstrisEditModelPatchNode",
     };
     // PRUNE-MANIFEST-END
