@@ -219,6 +219,7 @@ public class KreaGoneWildExtension : Extension
             OrderPriority: OrderPriority++
         ));
 
+        WorkflowGenerator.AddStep(DisableReferenceOnlyForKreaEdits, -7.01);
         WorkflowGenerator.AddStep(ApplyKrea2EditGrounding, -6.995);
         WorkflowGenerator.AddStep(ApplyConditioningRebalance, -6.99);
         WorkflowGenerator.AddStep(ApplyKrea2Edit, -5.5);
@@ -234,6 +235,19 @@ public class KreaGoneWildExtension : Extension
     /// group's on/off state. Pass a param that is always registered in the group (not one that can be dropped by IgnoreIf).</summary>
     private static bool IsGroupEnabled<T>(WorkflowGenerator generator, T2IRegisteredParam<T> groupParam)
         => generator.UserInput.TryGet(groupParam, out T _);
+
+    /// <summary>Prevents generic reference conditioning from stacking with the edit packs' reference conditioning.</summary>
+    private static void DisableReferenceOnlyForKreaEdits(WorkflowGenerator generator)
+    {
+        if (!IsKrea2(generator)
+            || !generator.UserInput.Get(T2IParamTypes.UseReferenceOnly, false)
+            || (!IsGroupEnabled(generator, EditReferenceMegapixels) && !IsGroupEnabled(generator, InContextRefBoost)))
+        {
+            return;
+        }
+        generator.UserInput.Set(T2IParamTypes.UseReferenceOnly, false);
+        Logs.Warning("Krea Gone Wild: disabled core Use Reference Only because the enabled Krea edit mode provides its own reference conditioning.");
+    }
 
     private static void ApplyConditioningRebalance(WorkflowGenerator generator)
     {
