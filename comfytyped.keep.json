@@ -1,4 +1,4 @@
 {
     "keep_modules": [],
-    "keep_class_types": ["ConditioningKrea2Rebalance", "Krea2OstrisEditModelPatch", "Krea2EditModelPatch"]
+    "keep_class_types": ["ConditioningKrea2Rebalance"]
 }
